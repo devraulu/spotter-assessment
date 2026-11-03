@@ -10,9 +10,9 @@ HERE_API_KEY = os.environ.get("HERE_API_KEY", "")
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "")
 
-DEBUG = True
+DEBUG = os.environ.get("DEBUG") == "1"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
