@@ -201,7 +201,7 @@ function RouteLayers({
     )} · Rank ${route.by_interval[interval].summary.rank}`;
 
   const segmentTooltip = (route: Route, seg: Segment) => (
-    <Tooltip sticky>
+    <Tooltip sticky pane="tooltipPane">
       {routeLabel(route)}
       <br />
       Miles {seg.fromMile}–{seg.toMile}
@@ -234,7 +234,7 @@ function RouteLayers({
                 }
                 eventHandlers={{ click: () => onSelect(route.id) }}
               >
-                <Tooltip sticky>{routeLabel(route)}</Tooltip>
+                <Tooltip sticky pane="tooltipPane">{routeLabel(route)}</Tooltip>
               </Polyline>
             ))}
         </MapPane>
@@ -307,10 +307,10 @@ function RouteLayers({
                 fillOpacity: 1,
               }}
             >
-              <Tooltip>
+              <Tooltip pane="tooltipPane">
                 <CheckpointDetails routeId={selectedId} cp={cp} />
               </Tooltip>
-              <Popup>
+              <Popup pane="popupPane">
                 <CheckpointDetails routeId={selectedId} cp={cp} />
               </Popup>
             </CircleMarker>

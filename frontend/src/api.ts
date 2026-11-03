@@ -1,5 +1,10 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import type { ApiError, PlaceSuggestion, TripRequest, TripResponse } from "@/types";
+import type {
+  ApiError,
+  PlaceSuggestion,
+  TripRequest,
+  TripResponse,
+} from "@/types";
 
 const MIN_PLACE_QUERY = 3;
 
@@ -15,7 +20,9 @@ export class TripError extends Error {
 }
 
 async function parseError(resp: Response): Promise<TripError> {
-  const body = await resp.json().catch(() => ({ error: `Request failed (${resp.status})` }));
+  const body = await resp
+    .json()
+    .catch(() => ({ error: `Request failed (${resp.status})` }));
   return new TripError(resp.status, body);
 }
 
@@ -29,15 +36,26 @@ export async function fetchTrip(req: TripRequest): Promise<TripResponse> {
   return resp.json();
 }
 
-export async function fetchPlaces(query: string, signal?: AbortSignal): Promise<PlaceSuggestion[]> {
-  const resp = await fetch(`/api/places?q=${encodeURIComponent(query)}`, { signal });
+export async function fetchPlaces(
+  query: string,
+  signal?: AbortSignal,
+): Promise<PlaceSuggestion[]> {
+  const resp = await fetch(`/api/places?q=${encodeURIComponent(query)}`, {
+    signal,
+  });
   if (!resp.ok) throw await parseError(resp);
   return (await resp.json()).suggestions;
 }
 
 export function useTrip(request: TripRequest | null) {
   return useQuery({
-    queryKey: ["trip", request?.origin, request?.destination, request?.departure_at, request?.load_weight_lb],
+    queryKey: [
+      "trip",
+      request?.origin,
+      request?.destination,
+      request?.departure_at,
+      request?.load_weight_lb,
+    ],
     queryFn: () => fetchTrip(request!),
     enabled: request !== null,
     staleTime: Infinity,
