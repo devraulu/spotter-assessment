@@ -1,6 +1,5 @@
 import json
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 
 import pytest
 
@@ -9,14 +8,14 @@ from trips.providers import NotFoundError, ProviderError
 from trips.providers.here import parse_routes
 from trips.types import HourlyWeather, Place
 
-FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+from tests.payloads import NO_ROUTE, ROUTES
+
 DEPARTURE = (datetime.now(UTC) + timedelta(days=1)).replace(microsecond=0).isoformat()
 
 
 class FakeHere:
-    def __init__(self, routes_fixture="here_routes_truck.json", fail=False):
-        self.data = json.loads((FIXTURES / routes_fixture).read_text())
-        self.fail = fail
+    def __init__(self, routes=ROUTES, fail=False):
+        self.routes, self.fail = routes, fail
 
     def geocode(self, query):
         if query == "Nowhere":
@@ -26,7 +25,7 @@ class FakeHere:
     def truck_routes(self, origin, destination, departure_at, weight_lb):
         if self.fail:
             raise ProviderError("HERE request failed: Timeout")
-        return parse_routes(self.data.get("body", self.data))
+        return parse_routes(self.routes)
 
 
 class FakeWeather:
@@ -70,7 +69,7 @@ def test_validation(client, monkeypatch, overrides, field):
 
 @pytest.mark.parametrize("here, origin, status", [
     (FakeHere(), "Nowhere", 422),
-    (FakeHere("here_routes_no_route.json"), "Chicago, IL", 422),
+    (FakeHere(NO_ROUTE), "Chicago, IL", 422),
     (FakeHere(fail=True), "Chicago, IL", 502),
 ])
 def test_upstream_errors(client, monkeypatch, here, origin, status):

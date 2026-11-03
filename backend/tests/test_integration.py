@@ -1,7 +1,5 @@
-import copy
 import json
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
 import requests
@@ -13,13 +11,16 @@ from trips.providers.here import HereClient
 from trips.providers.open_meteo import OpenMeteoClient
 from trips.types import Place
 
-# ERROR: Shouldn't use fixtures
-FIXTURES = Path(__file__).resolve().parents[2] / "fixtures"
+from tests.payloads import (
+    AUTOCOMPLETE,
+    FORECAST_ERROR,
+    GEOCODE,
+    GEOCODE_EMPTY,
+    ROUTES,
+    forecast,
+)
+
 DEPARTURE = "2026-11-03T06:00:00-06:00"
-
-
-def load(name):
-    return json.loads((FIXTURES / name).read_text())
 
 
 class FakeResponse:
@@ -43,21 +44,16 @@ class FakeHttp:
     def __call__(self, url, params, timeout):
         self.calls.append((url, params))
         if url == here.GEOCODE_URL:
-            name = {"Chicago, IL": "origin", "Denver, CO": "destination"}.get(
-                params["q"], "empty"
-            )
-            return FakeResponse(load(f"here_geocode_{name}.json"))
+            return FakeResponse(GEOCODE.get(params["q"], GEOCODE_EMPTY))
         if url == here.AUTOCOMPLETE_URL:
-            return FakeResponse(load("here_autocomplete.json"))
+            return FakeResponse(AUTOCOMPLETE)
         if url == here.ROUTES_URL:
-            return FakeResponse(load("here_routes_truck.json"))
+            return FakeResponse(ROUTES)
         if url == open_meteo.FORECAST_URL:
             if self.weather_status != 200:
-                return FakeResponse(load("open_meteo_error.json"), self.weather_status)
+                return FakeResponse(FORECAST_ERROR, self.weather_status)
             n = len(params["latitude"].split(","))
-            locations = [
-                copy.deepcopy(load("open_meteo_single.json")) for _ in range(n)
-            ]
+            locations = [forecast() for _ in range(n)]
             return FakeResponse(locations if n > 1 else locations[0])
         raise AssertionError(f"unexpected URL {url}")
 
@@ -188,7 +184,7 @@ def test_full_trip(client, monkeypatch, http):
     coords = sum(len(p["latitude"].split(",")) for p in weather_calls)
     assert len(weather_calls) == -(-coords // 100)
 
-    hourly = load("open_meteo_single.json")["hourly"]
+    hourly = forecast()["hourly"]
     weather = data["routes"][0]["by_interval"]["10"]["checkpoints"][0]["weather"]
     assert weather == {
         "wind_mph": hourly["wind_speed_10m"][0],
@@ -202,7 +198,7 @@ def test_full_trip(client, monkeypatch, http):
 @pytest.mark.parametrize("interval", ["10", "25", "50"])
 def test_checkpoint_weather_uses_eta_hour(client, monkeypatch, http, interval):
     data = post_trip(client, monkeypatch).json()
-    hourly = load("open_meteo_single.json")["hourly"]
+    hourly = forecast()["hourly"]
     start = datetime.fromisoformat(
         data["departure_at"]
     )
