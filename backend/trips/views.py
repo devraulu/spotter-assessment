@@ -68,8 +68,13 @@ def parse_request(body: bytes, now: datetime) -> TripRequest:
     )
 
 
+def client_ip(request) -> str:
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    return forwarded.split(",")[0].strip() or request.META.get("REMOTE_ADDR", "")
+
+
 def rate_limited(limiter: RateLimiter, request) -> JsonResponse | None:
-    retry_after = limiter.check(request.META.get("REMOTE_ADDR", ""))
+    retry_after = limiter.check(client_ip(request))
     if not retry_after:
         return None
     resp = JsonResponse({"error": "Too many requests, try again shortly"}, status=429)
