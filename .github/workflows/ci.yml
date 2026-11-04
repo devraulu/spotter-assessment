@@ -21,6 +21,27 @@ jobs:
       - run: uv sync --locked
       - run: uv run pytest
 
+  deploy-backend:
+    needs: backend
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: deploy-backend
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: >
+          gcloud run deploy truck-routing-api
+          --source backend
+          --region us-central1
+          --quiet
+
   frontend:
     runs-on: ubuntu-latest
     defaults:
